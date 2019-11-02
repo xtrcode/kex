@@ -3,7 +3,7 @@ kex is a small wrapper around go's `crypto/elliptic` library I
 used in a personal project to further abstract and simplify shared secret generation
 within an client/server configuration.
 
-# INSTALL
+# Install
 ```bash
 go get github.com/xtrcode/kex
 ```
