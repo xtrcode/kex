@@ -3,12 +3,12 @@ kex is a small wrapper around go's `crypto/elliptic` library I
 used in a personal project to further abstract and simplify shared secret generation
 within an client/server configuration.
 
-# Install
+# INSTALL
 ```bash
 go get github.com/xtrcode/kex
 ```
 
-# Usage
+# USAGE
 ```go
 aliceKex := kex.NewKex(kex.P512)
 bobKex := kex.NewKex(kex.P512)
