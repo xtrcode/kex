@@ -35,9 +35,8 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/gob"
+	"errors"
 	"math/big"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -54,7 +53,27 @@ type Kex struct {
 	Scalar *big.Int
 }
 
-func NewKex(curveType int) *Kex {
+func NewP224() *Kex {
+	k, _ := NewKex(P224)
+	return k
+}
+
+func NewP256() *Kex {
+	k, _ := NewKex(P256)
+	return k
+}
+
+func NewP386() *Kex {
+	k, _ := NewKex(P386)
+	return k
+}
+
+func NewP512() *Kex {
+	k, _ := NewKex(P512)
+	return k
+}
+
+func NewKex(curveType int) (*Kex, error) {
 	var (
 		curve elliptic.Curve
 	)
@@ -69,12 +88,12 @@ func NewKex(curveType int) *Kex {
 	case P512:
 		curve = elliptic.P521()
 	default:
-		log.Fatal("curveType not specified.")
+		return nil, errors.New("Unknown elliptic curve.")
 	}
 
 	sk, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	return &Kex{
@@ -82,25 +101,25 @@ func NewKex(curveType int) *Kex {
 		SK:    sk,
 		X:     big.NewInt(0),
 		Y:     big.NewInt(0),
-	}
+	}, nil
 }
 
 // Encode encodes your public keys X & Y values using gob
 // to transmit them to your partner/server/whatever.
-func (k *Kex) Encode() []byte {
+func (k *Kex) Encode() ([]byte, error) {
 	buffer := new(bytes.Buffer)
 
 	e := gob.NewEncoder(buffer)
 	if err := e.Encode([][]byte{k.SK.PublicKey.X.Bytes(), k.SK.PublicKey.Y.Bytes()}); err != nil {
-		log.Fatal("Encoding public key failed:", err)
+		return nil, errors.New("Encoding public key failed.")
 	}
 
-	return buffer.Bytes()
+	return buffer.Bytes(), nil
 }
 
 // Decode decodes the received public key X & Y values using gob
 // to be able to generate your shared secret.
-func (k *Kex) Decode(encodedPK []byte) {
+func (k *Kex) Decode(encodedPK []byte) error {
 	// reset old pk
 	k.X = big.NewInt(0)
 	k.Y = big.NewInt(0)
@@ -112,11 +131,13 @@ func (k *Kex) Decode(encodedPK []byte) {
 
 	d := gob.NewDecoder(buffer)
 	if err := d.Decode(&decodedPK); err != nil {
-		log.Fatal("Decoding public key failed:", err)
+		return errors.New("Decoding public key failed")
 	}
 
 	k.X.SetBytes(decodedPK[0])
 	k.Y.SetBytes(decodedPK[1])
+
+	return nil
 }
 
 // Calculate shared secret.
